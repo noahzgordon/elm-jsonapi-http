@@ -1,30 +1,26 @@
 module JsonApi.Http
     exposing
-        ( Error(..)
-        , get
+        ( get
+        , getPrimaryResource
+        , getPrimaryResourceCollection
         )
 
 {-| A library for requesting resources from JSON API-compliant servers.
     Intended to be used in conjunction with `elm-jsonapi`, which provides
     serializers and helper functions.
 
-@docs Error, get
+@docs get, getPrimaryResource, getPrimaryResourceCollection
 -}
 
 import JsonApi
 import JsonApi.Decode exposing (document)
+import JsonApi.Documents
 import Http
 import Task exposing (Task)
+import Result exposing (Result)
 
 
-{-| Data type representing an error resulting from a network request
--}
-type Error
-    = Error
-    | NetworkError
-
-
-{-| Function which retreives an inital resource from a given endpoint
+{-| Retreives a JSON API document from the given endpoint.
 -}
 get : String -> Task Http.Error JsonApi.Document
 get url =
@@ -38,4 +34,24 @@ get url =
         , body = Http.empty
         }
         |> Http.fromJson document
+
+
+{-| Retreives the JSON API resource from the given endpoint.
+    If there the payload is malformed or there is no singleton primary resource,
+    the error type will be UnexpectedPayload.
+-}
+getPrimaryResource : String -> Task Http.Error JsonApi.Resource
+getPrimaryResource url =
+    get url
+        `Task.andThen` (JsonApi.Documents.primaryResource >> Task.fromResult >> Task.mapError Http.UnexpectedPayload)
+
+
+{-| Retreives the JSON API resource collection from the given endpoint.
+    If there the payload is malformed or there is no primary resource collection,
+    the error type will be UnexpectedPayload.
+-}
+getPrimaryResourceCollection : String -> Task Http.Error (List JsonApi.Resource)
+getPrimaryResourceCollection url =
+    get url
+        `Task.andThen` (JsonApi.Documents.primaryResourceCollection >> Task.fromResult >> Task.mapError Http.UnexpectedPayload)
 
