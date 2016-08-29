@@ -1,6 +1,6 @@
 module JsonApi.Http
     exposing
-        ( get
+        ( getDocument
         , getPrimaryResource
         , getPrimaryResourceCollection
         )
@@ -9,7 +9,7 @@ module JsonApi.Http
     Intended to be used in conjunction with `elm-jsonapi`, which provides
     serializers and helper functions.
 
-@docs get, getPrimaryResource, getPrimaryResourceCollection
+@docs getDocument, getPrimaryResource, getPrimaryResourceCollection
 -}
 
 import JsonApi
@@ -22,8 +22,8 @@ import Result exposing (Result)
 
 {-| Retreives a JSON API document from the given endpoint.
 -}
-get : String -> Task Http.Error JsonApi.Document
-get url =
+getDocument : String -> Task Http.Error JsonApi.Document
+getDocument url =
     Http.send Http.defaultSettings
         { verb = "GET"
         , headers =
@@ -42,7 +42,7 @@ get url =
 -}
 getPrimaryResource : String -> Task Http.Error JsonApi.Resource
 getPrimaryResource url =
-    get url
+    getDocument url
         `Task.andThen` (JsonApi.Documents.primaryResource >> Task.fromResult >> Task.mapError Http.UnexpectedPayload)
 
 
@@ -52,6 +52,5 @@ getPrimaryResource url =
 -}
 getPrimaryResourceCollection : String -> Task Http.Error (List JsonApi.Resource)
 getPrimaryResourceCollection url =
-    get url
+    getDocument url
         `Task.andThen` (JsonApi.Documents.primaryResourceCollection >> Task.fromResult >> Task.mapError Http.UnexpectedPayload)
-
