@@ -13,7 +13,7 @@ For a live usage example, see the `/example` directory in the project repo.
 3. Run the sinatra server (and make sure it runs on port 9292 if that's not your default): `rackup -p 9292`
 
 
-```
+```elm
 -- from `noahzgordon/elm-jsonapi`
 import JsonApi.Resources
 -- from `noahzgordon/elm-jsonapi-http`
