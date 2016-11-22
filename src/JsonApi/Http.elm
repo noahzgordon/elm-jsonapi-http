@@ -15,42 +15,52 @@ module JsonApi.Http
 import JsonApi
 import JsonApi.Decode exposing (document)
 import JsonApi.Documents
-import Http
+import Http exposing (Request)
 import Task exposing (Task)
-import Result exposing (Result)
+import Json.Decode exposing (Decoder)
 
 
 {-| Retreives a JSON API document from the given endpoint.
 -}
-getDocument : String -> Task Http.Error JsonApi.Document
+getDocument : String -> Request JsonApi.Document
 getDocument url =
-    Http.send Http.defaultSettings
-        { verb = "GET"
-        , headers =
-            [ ( "Content-Type", "application/vnd.api+json" )
-            , ( "Accept", "application/vnd.api+json" )
-            ]
-        , url = url
-        , body = Http.empty
-        }
-        |> Http.fromJson document
+  get url extractDocument
 
 
 {-| Retreives the JSON API resource from the given endpoint.
     If there the payload is malformed or there is no singleton primary resource,
-    the error type will be UnexpectedPayload.
+    the error type will be BadPayload.
 -}
-getPrimaryResource : String -> Task Http.Error JsonApi.Resource
+getPrimaryResource : String -> Request JsonApi.Resource
 getPrimaryResource url =
-    getDocument url
-        `Task.andThen` (JsonApi.Documents.primaryResource >> Task.fromResult >> Task.mapError Http.UnexpectedPayload)
+    get url (extractDocument >> Result.andThen JsonApi.Documents.primaryResource)
 
 
 {-| Retreives the JSON API resource collection from the given endpoint.
     If there the payload is malformed or there is no primary resource collection,
-    the error type will be UnexpectedPayload.
+    the error type will be BadPayload.
 -}
-getPrimaryResourceCollection : String -> Task Http.Error (List JsonApi.Resource)
+getPrimaryResourceCollection : String -> Request (List JsonApi.Resource)
 getPrimaryResourceCollection url =
-    getDocument url
-        `Task.andThen` (JsonApi.Documents.primaryResourceCollection >> Task.fromResult >> Task.mapError Http.UnexpectedPayload)
+    get url (extractDocument >> Result.andThen JsonApi.Documents.primaryResourceCollection)
+
+
+extractDocument : Http.Response String -> Result String JsonApi.Document
+extractDocument { body } =
+    Json.Decode.decodeString JsonApi.Decode.document body
+
+
+get : String -> (Http.Response String -> Result String a) -> Request a
+get url handler =
+    Http.request
+        { method = "GET"
+        , headers =
+            [ Http.header "Content-Type" "application/vnd.api+json"
+            , Http.header "Accept" "application/vnd.api+json"
+            ]
+        , url = url
+        , body = Http.emptyBody
+        , expect = Http.expectStringResponse handler
+        , timeout = Nothing
+        , withCredentials = False
+        }
