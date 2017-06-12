@@ -55,9 +55,7 @@ get url handler =
     Http.request
         { method = "GET"
         , headers =
-            [ Http.header "Content-Type" "application/vnd.api+json"
-            , Http.header "Accept" "application/vnd.api+json"
-            ]
+            [ Http.header "Accept" "application/vnd.api+json" ]
         , url = url
         , body = Http.emptyBody
         , expect = Http.expectStringResponse handler
