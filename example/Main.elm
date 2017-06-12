@@ -1,22 +1,20 @@
 module Main exposing (main)
 
 import Html
-import Html.App
 import Http
-import Task
 import Html.Events exposing (onClick)
 import Platform.Cmd exposing ((!))
 import Platform.Sub exposing (Sub)
-import Json.Decode exposing ((:=))
+import Json.Decode
 import JsonApi
-import JsonApi.Resources
 import JsonApi.Http
+import JsonApi.Resources
 import Debug
 
 
 main =
-    Html.App.program
-        { init = initialModel ! []
+    Html.program
+        { init = (initialModel, Cmd.none)
         , update = update
         , subscriptions = \_ -> Sub.none
         , view = view
@@ -24,9 +22,8 @@ main =
 
 
 type Message
-    = GetInitialModel
-    | ProtagonistLoaded JsonApi.Resource
-    | ProtagonistFailedToLoad Http.Error
+    = GetProtagonist
+    | ProtagonistLoaded (Result Http.Error JsonApi.Resource)
 
 
 view model =
@@ -39,7 +36,7 @@ view model =
 renderProtagonist model =
     case model.protagonist of
         Nothing ->
-            Html.button [ Html.Events.onClick GetInitialModel ] [ Html.text "Get Initial Model" ]
+            Html.button [ Html.Events.onClick GetProtagonist ] [ Html.text "Get Initial Model" ]
 
         Just character ->
             Html.p [] [ Html.text (character.firstName ++ " " ++ character.lastName) ]
@@ -47,14 +44,14 @@ renderProtagonist model =
 
 update message model =
     case message of
-        GetInitialModel ->
-            model ! [ getProtagonist ]
+        GetProtagonist ->
+            ( model, getProtagonist )
 
-        ProtagonistLoaded resource ->
-            { model | protagonist = JsonApi.Resources.attributes characterDecoder resource |> Result.toMaybe } ! []
+        ProtagonistLoaded (Ok resource) ->
+            ( { model | protagonist = JsonApi.Resources.attributes characterDecoder resource |> Result.toMaybe }, Cmd.none)
 
-        ProtagonistFailedToLoad e ->
-            Debug.log ("Remember to start the server on port 9292! " ++ toString e) (model ! [])
+        ProtagonistLoaded (Err error) ->
+            Debug.log ("Remember to start the server on port 9292! " ++ toString e) (model, Cmd.none)
 
 
 type alias Model =
@@ -70,9 +67,9 @@ type alias Character =
 
 characterDecoder : Json.Decode.Decoder Character
 characterDecoder =
-    Json.Decode.object2 Character
-        ("first-name" := Json.Decode.string)
-        ("last-name" := Json.Decode.string)
+    Json.Decode.map2 Character
+        (Json.Decode.field "first-name" Json.Decode.string)
+        (Json.Decode.field "last-name" Json.Decode.string)
 
 
 initialModel =
@@ -83,4 +80,4 @@ initialModel =
 getProtagonist : Cmd Message
 getProtagonist =
     JsonApi.Http.getPrimaryResource "http://localhost:9292/luke"
-        |> Task.perform ProtagonistFailedToLoad ProtagonistLoaded
+        |> Http.send ProtagonistLoaded
