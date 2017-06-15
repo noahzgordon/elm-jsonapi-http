@@ -32,23 +32,23 @@ type alias Character =
 
 characterDecoder : Json.Decode.Decoder Character
 characterDecoder =
-    Json.Decode.object2 Character
-        ("first-name" := Json.Decode.string)
-        ("last-name" := Json.Decode.string)
+    Json.Decode.map2 Character
+        (Json.Decode.field "first-name" Json.Decode.string)
+        (Json.Decode.field "last-name" Json.Decode.string)
 
 
 getProtagonist : Cmd Message
 getProtagonist =
     JsonApi.Http.getPrimaryResource "http://localhost:9292/luke"
-        |> Task.perform ProtagonistFailedToLoad ProtagonistLoaded
+        |> Http.send ProtagonistLoaded
 
 
 update message model =
     case message of
-        ProtagonistLoaded resource ->
-            { model | protagonist = JsonApi.Resources.attributes characterDecoder resource |> Result.toMaybe } ! []
+        ProtagonistLoaded (Ok resource) ->
+            ( { model | protagonist = JsonApi.Resources.attributes characterDecoder resource |> Result.toMaybe }, Cmd.none)
 
-        ProtagonistFailedToLoad e ->
-            Debug.log ("Remember to start the server on port 9292! " ++ toString e) (model ! [])
+        ProtagonistLoaded (Err error) ->
+            Debug.log ("Remember to start the server on port 9292! " ++ toString e) (model, Cmd.none)
 
 ```
