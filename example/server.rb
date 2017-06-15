@@ -21,13 +21,13 @@ class ExampleServer < Sinatra::Base
   options "*" do
     response.headers["Allow"] = "HEAD,GET,PUT,DELETE,OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "X-Requested-With, X-HTTP-Method-Override, Content-Type, Cache-Control, Accept"
-    response.headers["Access-Control-Allow-Origin"] = "null"
+    response.headers["Access-Control-Allow-Origin"] = "*"
     200
   end
 
   before do
     content_type 'application/vnd.api+json'
-    headers['Access-Control-Allow-Origin'] = 'null'
+    headers['Access-Control-Allow-Origin'] = '*'
   end
 
   get '/luke' do
